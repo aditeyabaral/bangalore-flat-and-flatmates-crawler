@@ -108,10 +108,8 @@ class Driver:
 
         feed_xpath = "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[2]/div[3]"
         feed_element = self.chrome.find_element(By.XPATH, feed_xpath)
-
         post_elements = feed_element.find_elements(By.XPATH, "./div")[2:]
-
-        for post_element in post_elements[:5]:
+        for post_element in post_elements:
             content = str()
             current_post_elements = post_element.find_elements(By.XPATH, "./div/div/div/div/div/div/div/div/div/div")[1:]
             current_post_elements = list(filter(lambda x: x.get_attribute("class").strip() == "", current_post_elements))
