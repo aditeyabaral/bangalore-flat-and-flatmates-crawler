@@ -29,7 +29,7 @@ class FlatAndFlatmatesDatabase:
                 try:
                     self.connection.execute(query)
                 except Exception as e:
-                    print(f"Error while executing query: {query}")
+                    print(f"Error while executing query: {query}: {e}")
 
     def add_new_post_entry(self, description, create_time, keywords, url):
         query = self.posts_table.insert().values(
