@@ -47,13 +47,15 @@ class Driver:
     def get_driver(self):
         return self.chrome
 
-    # /div/div[2]/div/div[2]/span/span/span[2]/span/a
     # TODO: Return create_time
     def parse_header_element(self, header_element):
         anchor_tags = header_element.find_elements(By.XPATH, ".//a[@role=\"link\"]")
         links = set()
         for anchor_tag in anchor_tags:
-            ActionChains(self.chrome).move_to_element(anchor_tag).perform()
+            try:
+                ActionChains(self.chrome).move_to_element(anchor_tag).perform()
+            except:
+                pass
             time.sleep(0.5)
             url = anchor_tag.get_attribute("href")
             url = url.split("?")[0]
@@ -61,22 +63,15 @@ class Driver:
                 links.add(url)
             try:
                 span_element = anchor_tag.find_element(By.XPATH, "./span")
-                print(span_element.text)
             except:
                 pass
         return links
 
-        # anchor_and_time_element = header_element.find_element(By.XPATH, "./div/div[2]/div/div[2]/span/span/span[2]/span/a")
-        # print(anchor_and_time_element.get_attribute("class"))
-        # print(anchor_and_time_element.get_attribute("href"))
-        # print(anchor_and_time_element.find_element(By.XPATH, "./span").text)
-
-        # span_tags = header_element.find_elements(By.XPATH, ".//span")
-        # for span_tag in span_tags:
-        #     print(span_tag.text)
-
     def parse_body_element(self, body_element):
-        body_element.find_element(By.XPATH, ".//div[@role=\"button\"]").click()
+        buttons = body_element.find_elements(By.XPATH, ".//div[@role=\"button\"]")
+        for button in buttons:
+            if button.get_attribute("aria-label") != "Message":
+                button.click()
         paragraph_elements = body_element.find_elements(By.XPATH, ".//div[@dir=\"auto\"]")
         content = str()
         for paragraph_element in paragraph_elements:
@@ -105,10 +100,10 @@ class Driver:
         self.chrome.get(url)
 
     def scrape_posts_on_page(self):
-        time.sleep(4)
-        for _ in range(5):
+        # time.sleep(4)
+        for _ in range(10):
             ActionChains(self.chrome).send_keys(Keys.PAGE_DOWN).perform()
-            time.sleep(0.5)
+            time.sleep(1)
         time.sleep(2)
 
         feed_xpath = "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[2]/div[3]"
@@ -121,8 +116,6 @@ class Driver:
             current_post_elements = post_element.find_elements(By.XPATH, "./div/div/div/div/div/div/div/div/div/div")[1:]
             current_post_elements = list(filter(lambda x: x.get_attribute("class").strip() == "", current_post_elements))
             current_post_elements = current_post_elements[0].find_elements(By.XPATH, "./div/div")
-            num_current_post_elements = len(current_post_elements)
-            print("Number of current_post_elements:", num_current_post_elements)
             _, header_element, body_element, comment_element = current_post_elements
             links = self.parse_header_element(header_element)
             content = self.parse_body_element(body_element)
