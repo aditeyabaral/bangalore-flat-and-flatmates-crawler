@@ -58,6 +58,9 @@ class Driver:
         anchor_tags = header_element.find_elements(By.XPATH, ".//a[@role=\"link\"]")
         links = set()
         for anchor_tag in anchor_tags:
+            # hover mouse over the anchor tag
+            ActionChains(self.chrome).move_to_element(anchor_tag).perform()
+            time.sleep(0.5)
             url = anchor_tag.get_attribute("href")
             print(url)
             url = url.split("?")[0]
