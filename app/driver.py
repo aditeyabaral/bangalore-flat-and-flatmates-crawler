@@ -47,20 +47,23 @@ class Driver:
     def get_driver(self):
         return self.chrome
 
+    # /div/div[2]/div/div[2]/span/span/span[2]/span/a
     def parse_header_element(self, header_element):
-        element = header_element.find_elements(By.XPATH, "./div/div[2]/div/div/div")
-        print(element.get_attribute("class"))
+        # anchor_and_time_element = header_element.find_element(By.XPATH, "./div/div[2]/div/div[2]/span/span/span[2]/span/a")
+        # print(anchor_and_time_element.get_attribute("class"))
+        # print(anchor_and_time_element.get_attribute("href"))
+        # print(anchor_and_time_element.find_element(By.XPATH, "./span").text)
 
 
-        # anchor_tags = header_element.find_elements(By.XPATH, ".//a[@role=\"link\"]")
-        # links = set()
-        # for anchor_tag in anchor_tags:
-        #     url = anchor_tag.get_attribute("href")
-        #     print(url)
-        #     url = url.split("?")[0]
-        #     if "user" in url:
-        #         links.add(url)
-        # print("Links:", links)
+        anchor_tags = header_element.find_elements(By.XPATH, ".//a[@role=\"link\"]")
+        links = set()
+        for anchor_tag in anchor_tags:
+            url = anchor_tag.get_attribute("href")
+            print(url)
+            url = url.split("?")[0]
+            # if "user" in url:
+            links.add(url)
+        print("Links:", links)
 
         # span_tags = header_element.find_elements(By.XPATH, ".//span")
         # for span_tag in span_tags:
@@ -84,7 +87,7 @@ class Driver:
     
     def visit_group(self, group_name):
         time.sleep(3)
-        url = f"https://www.facebook.com/groups/{group_name}/buy_sell_discussion?sorting_setting=RECENT_ACTIVITY"
+        url = f"https://www.facebook.com/groups/{group_name}?sorting_setting=CHRONOLOGICAL_LISTINGS"
         self.chrome.get(url)
 
     def scrape_posts_on_page(self):
@@ -92,11 +95,12 @@ class Driver:
         for _ in range(5):
             ActionChains(self.chrome).send_keys(Keys.PAGE_DOWN).perform()
             time.sleep(0.5)
+        time.sleep(2)
 
-        feed_xpath = "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[3]/div[3]"
+        feed_xpath = "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[2]/div[3]"
         feed_element = self.chrome.find_element(By.XPATH, feed_xpath)
 
-        post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
+        post_elements = feed_element.find_elements(By.XPATH, "./div")[2:]
         print(len(post_elements))
 
         for post_element in post_elements[:5]:
