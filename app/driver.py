@@ -48,30 +48,41 @@ class Driver:
         return self.chrome
 
     # /div/div[2]/div/div[2]/span/span/span[2]/span/a
+    # TODO: Return create_time
     def parse_header_element(self, header_element):
+        anchor_tags = header_element.find_elements(By.XPATH, ".//a[@role=\"link\"]")
+        links = set()
+        for anchor_tag in anchor_tags:
+            ActionChains(self.chrome).move_to_element(anchor_tag).perform()
+            time.sleep(0.5)
+            url = anchor_tag.get_attribute("href")
+            url = url.split("?")[0]
+            if "posts" in url:
+                links.add(url)
+            try:
+                span_element = anchor_tag.find_element(By.XPATH, "./span")
+                print(span_element.text)
+            except:
+                pass
+        return links
+
         # anchor_and_time_element = header_element.find_element(By.XPATH, "./div/div[2]/div/div[2]/span/span/span[2]/span/a")
         # print(anchor_and_time_element.get_attribute("class"))
         # print(anchor_and_time_element.get_attribute("href"))
         # print(anchor_and_time_element.find_element(By.XPATH, "./span").text)
 
-
-        anchor_tags = header_element.find_elements(By.XPATH, ".//a[@role=\"link\"]")
-        links = set()
-        for anchor_tag in anchor_tags:
-            # hover mouse over the anchor tag
-            ActionChains(self.chrome).move_to_element(anchor_tag).perform()
-            time.sleep(0.5)
-            url = anchor_tag.get_attribute("href")
-            print(url)
-            url = url.split("?")[0]
-            # if "user" in url:
-            links.add(url)
-        print("Links:", links)
-
         # span_tags = header_element.find_elements(By.XPATH, ".//span")
         # for span_tag in span_tags:
         #     print(span_tag.text)
 
+    def parse_body_element(self, body_element):
+        body_element.find_element(By.XPATH, ".//div[@role=\"button\"]").click()
+        paragraph_elements = body_element.find_elements(By.XPATH, ".//div[@dir=\"auto\"]")
+        content = str()
+        for paragraph_element in paragraph_elements:
+            content += paragraph_element.text.strip() + '\n'
+        return content
+        
     def open_facebook(self):
         self.chrome.get("https://www.facebook.com/login/")
 
@@ -104,10 +115,8 @@ class Driver:
         feed_element = self.chrome.find_element(By.XPATH, feed_xpath)
 
         post_elements = feed_element.find_elements(By.XPATH, "./div")[2:]
-        print(len(post_elements))
 
         for post_element in post_elements[:5]:
-            print("Class of post element:", post_element.get_attribute("class"))
             content = str()
             current_post_elements = post_element.find_elements(By.XPATH, "./div/div/div/div/div/div/div/div/div/div")[1:]
             current_post_elements = list(filter(lambda x: x.get_attribute("class").strip() == "", current_post_elements))
@@ -115,5 +124,8 @@ class Driver:
             num_current_post_elements = len(current_post_elements)
             print("Number of current_post_elements:", num_current_post_elements)
             _, header_element, body_element, comment_element = current_post_elements
-            self.parse_header_element(header_element)
-            break
+            links = self.parse_header_element(header_element)
+            content = self.parse_body_element(body_element)
+            print(content)
+            print(links)
+            print('#' * 90)
