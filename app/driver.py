@@ -22,6 +22,7 @@ class Driver:
         self.chrome_options.add_argument("--disable-gpu")
         self.chrome_options.add_argument("--disable-geolocation")
         self.chrome_options.add_argument("--disable-notifications")
+        self.chrome_options.add_argument("--start-maximized")
         if os.path.expanduser("~").startswith("/app"):
             self.chrome_options.binary_location = "/app/.apt/usr/bin/google-chrome"
             self.chrome = webdriver.Chrome(
@@ -46,25 +47,24 @@ class Driver:
     def get_driver(self):
         return self.chrome
 
-    def recurse_through_divs(self, div_element, text):
-        divs = div_element.find_elements(By.XPATH, ".//div")
-        if len(divs) == 0:
-            return div_element.text
-        for div in divs:
-            text += self.recurse_through_divs(div, text)
-        return text
-    
-    def recurse_through_divs_and_find_role(self, div_element):
-        if div_element.role == "feed":
-            return div_element
-        divs = div_element.find_elements(By.XPATH, ".//div")
-        if len(divs) == 0:
-            return None
-        for div in divs:
-            role = self.recurse_through_divs_and_find_role(div)
-            if role is not None:
-                return role
+    def parse_header_element(self, header_element):
+        element = header_element.find_elements(By.XPATH, "./div/div[2]/div/div/div")
+        print(element.get_attribute("class"))
 
+
+        # anchor_tags = header_element.find_elements(By.XPATH, ".//a[@role=\"link\"]")
+        # links = set()
+        # for anchor_tag in anchor_tags:
+        #     url = anchor_tag.get_attribute("href")
+        #     print(url)
+        #     url = url.split("?")[0]
+        #     if "user" in url:
+        #         links.add(url)
+        # print("Links:", links)
+
+        # span_tags = header_element.find_elements(By.XPATH, ".//span")
+        # for span_tag in span_tags:
+        #     print(span_tag.text)
 
     def open_facebook(self):
         self.chrome.get("https://www.facebook.com/login/")
@@ -93,30 +93,20 @@ class Driver:
             ActionChains(self.chrome).send_keys(Keys.PAGE_DOWN).perform()
             time.sleep(0.5)
 
-        # find all where div have dir=auto
-        divs = self.chrome.find_elements(By.XPATH, "//span[@dir='auto']")
-        for div in divs:
-            print(div.text)
+        feed_xpath = "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[3]/div[3]"
+        feed_element = self.chrome.find_element(By.XPATH, feed_xpath)
 
-        # role_element = self.chrome.find_elements(By.XPATH, "//*[@role='feed']")[-1]
-        # print(role_element)
-        # print(role_element.get_attribute("class"))
-        # post_elements = role_element.find_elements(By.XPATH, ".//div")
-        # print(len(post_elements))
-        
-        # for post_element in post_elements[4:7]:
-        #     # get class name of post element
-        #     post_class = post_element.get_attribute("class")
-        #     print(post_class)
-            
+        post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
+        print(len(post_elements))
 
-
-            # traverse div/div/div/div/div/div/div/div/div
-            # for _ in range(8):
-            #     post_element = post_element.find_elements(By.XPATH, ".//div")
-            #     print(post_element)
-            #     if len(post_element) == 0:
-            #         break
-            #     post_element = post_element[0]
-            # print(post_element)
-            # print("#############################################################")
+        for post_element in post_elements[:5]:
+            print("Class of post element:", post_element.get_attribute("class"))
+            content = str()
+            current_post_elements = post_element.find_elements(By.XPATH, "./div/div/div/div/div/div/div/div/div/div")[1:]
+            current_post_elements = list(filter(lambda x: x.get_attribute("class").strip() == "", current_post_elements))
+            current_post_elements = current_post_elements[0].find_elements(By.XPATH, "./div/div")
+            num_current_post_elements = len(current_post_elements)
+            print("Number of current_post_elements:", num_current_post_elements)
+            _, header_element, body_element, comment_element = current_post_elements
+            self.parse_header_element(header_element)
+            break
