@@ -67,11 +67,9 @@ class Driver:
     def get_post_elements(self):
         try:
             WebDriverWait(self.chrome, 10).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, '//div[@role=\"feed\"]')
-                )
+                EC.presence_of_element_located((By.XPATH, '//div[@role="feed"]'))
             )
-            feed_element = self.chrome.find_element(By.XPATH, '//div[@role=\"feed\"]')
+            feed_element = self.chrome.find_element(By.XPATH, '//div[@role="feed"]')
             post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
             return post_elements
         except Exception as e:
