@@ -1,7 +1,7 @@
 import os
 import pytz
 import time
-import json
+import logging
 import datetime
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
@@ -15,11 +15,12 @@ IST = pytz.timezone("Asia/Kolkata")
 
 
 class Driver:
-    def __init__(self):
+    def create_driver(self):
+        logging.info("Creating driver")
         self.chrome_options = webdriver.ChromeOptions()
         # self.chrome_options.add_argument("--headless")
-        # self.chrome_options.add_argument("--no-sandbox")
-        # self.chrome_options.add_argument("--disable-dev-shm-usage")
+        self.chrome_options.add_argument("--no-sandbox")
+        self.chrome_options.add_argument("--disable-dev-shm-usage")
         self.chrome_options.add_argument("--ignore-ssl-errors=yes")
         self.chrome_options.add_argument("--ignore-certificate-errors")
         self.chrome_options.add_argument("--allow-running-insecure-content")
@@ -42,6 +43,7 @@ class Driver:
                 chromedriver_path = "./chromedriver.exe"
             else:
                 chromedriver_path = "chromedriver"
+            logging.debug(f"Chromedriver path: {chromedriver_path}")
 
             self.chrome = webdriver.Chrome(
                 executable_path=chromedriver_path, options=self.chrome_options
@@ -50,22 +52,37 @@ class Driver:
             "Emulation.setTimezoneOverride", {"timezoneId": "Asia/Kolkata"}
         )
 
+    def destroy_driver(self):
+        self.chrome.quit()
+
     def get_driver(self):
         return self.chrome
 
     def scroll_facebook(self, num_pages=1):
+        logging.info(f"Scrolling {num_pages} pages")
         for _ in range(num_pages):
             ActionChains(self.chrome).send_keys(Keys.PAGE_DOWN).perform()
             time.sleep(1)
 
     def get_post_elements(self):
-        feed_xpath = "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[2]/div[3]"
-        WebDriverWait(self.chrome, 10).until(
-            EC.presence_of_element_located((By.XPATH, feed_xpath))
-        )
-        feed_element = self.chrome.find_element(By.XPATH, feed_xpath)
-        post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
-        return post_elements
+        possible_feed_xpaths = [
+            "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div/div[2]/div[3]"
+            "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[2]/div[3]",
+            "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div[2]/div/div/div[1]/div[2]/div[2]",
+        ]
+        for xpath_index, possible_feed_xpath in enumerate(possible_feed_xpaths):
+            try:
+                WebDriverWait(self.chrome, 10).until(
+                    EC.presence_of_element_located((By.XPATH, possible_feed_xpath))
+                )
+                feed_element = self.chrome.find_element_by_xpath(possible_feed_xpath)
+                post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
+                return post_elements
+            except Exception as e:
+                logging.error(
+                    f"Could not find feed element using xpath {xpath_index}: {e}"
+                )
+        return list()
 
     # TODO: Return create_time
     def parse_header_element(self, header_element):
@@ -74,17 +91,13 @@ class Driver:
         for anchor_tag in anchor_tags:
             try:
                 ActionChains(self.chrome).move_to_element(anchor_tag).perform()
-            except:
-                pass
+            except Exception as e:
+                logging.error(f"Could not move to element: {e}")
             # time.sleep(0.2)
             url = anchor_tag.get_attribute("href")
             url = url.split("?")[0]
             if "posts" in url:
                 links.add(url)
-            try:
-                span_element = anchor_tag.find_element(By.XPATH, "./span")
-            except:
-                pass
         links = list(links)
         return links
 
@@ -134,19 +147,21 @@ class Driver:
                             "create_time": str(datetime.datetime.now(IST)),
                         }
                     )
-                    # print(result[-1])
                 index += 1
             except StaleElementReferenceException as e:
+                logging.error(f"Stale element reference exception: {e}")
                 if current_retry_count >= max_retries - 1:
+                    logging.info(f"Max retries reached. Skipping post element {index}")
                     index += 1
                 else:
+                    logging.info(f"Retrying post element {index}")
                     current_retry_count += 1
                     # index = 0
                     post_elements = self.get_post_elements()
                     total_post_elements = len(post_elements)
                     continue
             except Exception as e:
-                print(f"Error: {e}")
+                logging.error(f"Could not parse post element: {e}")
                 index += 1
 
         return result
@@ -176,7 +191,7 @@ class Driver:
     def scrape_posts_on_page(self):
         results = list()
         for i in range(3):
-            print(f"Scraping page {i+1}")
+            logging.info(f"Scraping page {i+1}")
             post_elements = self.get_post_elements()
             results.extend(self.parse_post_elements(post_elements))
             self.scroll_facebook(2)
