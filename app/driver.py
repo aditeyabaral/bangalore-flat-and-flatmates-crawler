@@ -1,14 +1,17 @@
 import os
+import pytz
 import time
+import json
+import datetime
 from selenium import webdriver
-import selenium
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
+IST = pytz.timezone("Asia/Kolkata")
 
 class Driver:
     def __init__(self):
@@ -49,6 +52,20 @@ class Driver:
     def get_driver(self):
         return self.chrome
 
+    def scroll_facebook(self, num_pages=1):
+        for _ in range(num_pages):
+            ActionChains(self.chrome).send_keys(Keys.PAGE_DOWN).perform()
+            time.sleep(1)
+
+    def get_post_elements(self):
+        feed_xpath = "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[2]/div[3]"
+        WebDriverWait(self.chrome, 10).until(
+            EC.presence_of_element_located((By.XPATH, feed_xpath))
+        )
+        feed_element = self.chrome.find_element(By.XPATH, feed_xpath)
+        post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
+        return post_elements
+
     # TODO: Return create_time
     def parse_header_element(self, header_element):
         anchor_tags = header_element.find_elements(By.XPATH, './/a[@role="link"]')
@@ -58,7 +75,7 @@ class Driver:
                 ActionChains(self.chrome).move_to_element(anchor_tag).perform()
             except:
                 pass
-            time.sleep(0.5)
+            # time.sleep(0.2)
             url = anchor_tag.get_attribute("href")
             url = url.split("?")[0]
             if "posts" in url:
@@ -67,6 +84,7 @@ class Driver:
                 span_element = anchor_tag.find_element(By.XPATH, "./span")
             except:
                 pass
+        links = list(links)
         return links
 
     def parse_body_element(self, body_element):
@@ -75,10 +93,62 @@ class Driver:
             if button.get_attribute("aria-label") != "Message":
                 button.click()
         paragraph_elements = body_element.find_elements(By.XPATH, './/div[@dir="auto"]')
-        content = str()
+        content = list()
         for paragraph_element in paragraph_elements:
-            content += paragraph_element.text.strip() + "\n"
-        return content
+            paragraph_text = paragraph_element.text.strip()
+            if paragraph_text and paragraph_text not in content:
+                content.append(paragraph_text)
+        return '\n'.join(content)
+
+    def parse_post_elements(self, post_elements, max_retries=2):
+        result = list()
+        index = 0
+        current_retry_count = 0
+        total_post_elements = len(post_elements)
+        while current_retry_count < max_retries and index < total_post_elements:
+            try:
+                post_element = post_elements[index]
+                current_post_elements = post_element.find_elements(
+                    By.XPATH, "./div/div/div/div/div/div/div/div/div/div"
+                )[1:]
+                current_post_elements = list(
+                    filter(
+                        lambda x: x.get_attribute("class").strip() == "",
+                        current_post_elements,
+                    )
+                )
+                current_post_elements = current_post_elements[0].find_elements(
+                    By.XPATH, "./div/div"
+                )
+                num_current_post_elements = len(current_post_elements)
+                header_element = current_post_elements[1]
+                body_element = current_post_elements[2]
+                links = self.parse_header_element(header_element)
+                content = self.parse_body_element(body_element)
+                if content != '':
+                    result.append(
+                        {
+                            "links": links,
+                            "content": content,
+                            "create_time": str(datetime.datetime.now(IST)),
+                        }
+                    )
+                    # print(result[-1])
+                index += 1
+            except StaleElementReferenceException as e:
+                if current_retry_count >= max_retries - 1:
+                    index += 1
+                else:
+                    current_retry_count += 1
+                    # index = 0
+                    post_elements = self.get_post_elements()
+                    total_post_elements = len(post_elements)
+                    continue
+            except Exception as e:
+                print(f"Error: {e}")
+                index += 1
+
+        return result
 
     def open_facebook(self):
         self.chrome.get("https://www.facebook.com/login/")
@@ -97,41 +167,19 @@ class Driver:
         self.chrome.find_element(By.XPATH, "//button[@type='submit']").click()
 
     def visit_group(self, group_name):
-        time.sleep(3)
+        time.sleep(1)
         url = f"https://www.facebook.com/groups/{group_name}?sorting_setting=CHRONOLOGICAL_LISTINGS"
         self.chrome.get(url)
+        time.sleep(3)
 
     def scrape_posts_on_page(self):
-        time.sleep(2)
-        for _ in range(10):
-            ActionChains(self.chrome).send_keys(Keys.PAGE_DOWN).perform()
-            time.sleep(1)
-        time.sleep(2)
-
-        feed_xpath = "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[2]/div[3]"
-        feed_element = self.chrome.find_element(By.XPATH, feed_xpath)
-        post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
-        for post_element in post_elements:
-            try:
-                content = str()
-                current_post_elements = post_element.find_elements(
-                    By.XPATH, "./div/div/div/div/div/div/div/div/div/div"
-                )[1:]
-                current_post_elements = list(
-                    filter(
-                        lambda x: x.get_attribute("class").strip() == "",
-                        current_post_elements,
-                    )
-                )
-                current_post_elements = current_post_elements[0].find_elements(
-                    By.XPATH, "./div/div"
-                )
-                _, header_element, body_element, comment_element = current_post_elements
-                links = self.parse_header_element(header_element)
-                content = self.parse_body_element(body_element)
-                print(content)
-                print(links)
-                print("#" * 120)
-            except Exception as e:
-                print(f"Exception while parsing post: {e}")
-                pass
+        results = list()
+        for i in range(3):
+            print(f"Scraping page {i+1}")
+            post_elements = self.get_post_elements()
+            results.extend(self.parse_post_elements(post_elements))
+            self.scroll_facebook(2)
+        return results
+        
+        with open("results.json", "w") as f:
+            json.dump(results, f, indent=4)
