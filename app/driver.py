@@ -13,6 +13,7 @@ from selenium.webdriver.common.keys import Keys
 
 IST = pytz.timezone("Asia/Kolkata")
 
+
 class Driver:
     def __init__(self):
         self.chrome_options = webdriver.ChromeOptions()
@@ -98,7 +99,7 @@ class Driver:
             paragraph_text = paragraph_element.text.strip()
             if paragraph_text and paragraph_text not in content:
                 content.append(paragraph_text)
-        return '\n'.join(content)
+        return "\n".join(content)
 
     def parse_post_elements(self, post_elements, max_retries=2):
         result = list()
@@ -125,7 +126,7 @@ class Driver:
                 body_element = current_post_elements[2]
                 links = self.parse_header_element(header_element)
                 content = self.parse_body_element(body_element)
-                if content != '':
+                if content != "":
                     result.append(
                         {
                             "links": links,
@@ -180,6 +181,3 @@ class Driver:
             results.extend(self.parse_post_elements(post_elements))
             self.scroll_facebook(2)
         return results
-        
-        with open("results.json", "w") as f:
-            json.dump(results, f, indent=4)
