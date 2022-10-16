@@ -65,23 +65,17 @@ class Driver:
             time.sleep(1)
 
     def get_post_elements(self):
-        possible_feed_xpaths = [
-            "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div/div[2]/div[3]"
-            "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div/div[2]/div/div/div[1]/div[2]/div[3]",
-            "/html/body/div[1]/div/div[1]/div/div[5]/div/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[4]/div/div[2]/div/div/div[1]/div[2]/div[2]",
-        ]
-        for xpath_index, possible_feed_xpath in enumerate(possible_feed_xpaths):
-            try:
-                WebDriverWait(self.chrome, 10).until(
-                    EC.presence_of_element_located((By.XPATH, possible_feed_xpath))
+        try:
+            WebDriverWait(self.chrome, 10).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//div[@role=\"feed\"]')
                 )
-                feed_element = self.chrome.find_element_by_xpath(possible_feed_xpath)
-                post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
-                return post_elements
-            except Exception as e:
-                logging.error(
-                    f"Could not find feed element using xpath {xpath_index}: {e}"
-                )
+            )
+            feed_element = self.chrome.find_element(By.XPATH, '//div[@role=\"feed\"]')
+            post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
+            return post_elements
+        except Exception as e:
+            logging.error(f"Could not find feed element")
         return list()
 
     # TODO: Return create_time
@@ -92,7 +86,7 @@ class Driver:
             try:
                 ActionChains(self.chrome).move_to_element(anchor_tag).perform()
             except Exception as e:
-                logging.error(f"Could not move to element: {e}")
+                logging.error(f"Could not move to element")
             # time.sleep(0.2)
             url = anchor_tag.get_attribute("href")
             url = url.split("?")[0]
@@ -149,7 +143,7 @@ class Driver:
                     )
                 index += 1
             except StaleElementReferenceException as e:
-                logging.error(f"Stale element reference exception: {e}")
+                logging.error(f"Stale element reference exception")
                 if current_retry_count >= max_retries - 1:
                     logging.info(f"Max retries reached. Skipping post element {index}")
                     index += 1
@@ -161,7 +155,7 @@ class Driver:
                     total_post_elements = len(post_elements)
                     continue
             except Exception as e:
-                logging.error(f"Could not parse post element: {e}")
+                logging.error(f"Could not parse post element")
                 index += 1
 
         return result
