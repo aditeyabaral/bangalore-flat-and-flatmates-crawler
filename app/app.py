@@ -19,7 +19,7 @@ IST = pytz.timezone("Asia/Kolkata")
 
 
 def fetch_new_posts():
-    logging.info(f"Fetching new posts at {datetime.datetime.now(IST)}")
+    logging.info(f"Fetching new posts from groups")
     group_names = processor.search_config["groups"]
     for group_name in group_names:
         logging.info(f"Fetching posts from {group_name}")
@@ -35,6 +35,7 @@ def fetch_new_posts():
             content = result["content"]
             create_time = result["create_time"]
             links = ",".join(result["links"])
+            logging.debug(f"Attempting to insert post: ({content}, {create_time}, {links}, {keyword}, {filter_check})")
             # db.add_new_post_entry(create_time, content, keyword, filter_check, links)
         time.sleep(10)
 
@@ -59,6 +60,7 @@ if __name__ == "__main__":
     fetch_new_posts()
     # scheduler = BackgroundScheduler()
     # scheduler.add_job(fetch_new_posts, "interval", minutes=15)
+    # logging.info("Starting scheduler for fetching new posts")
     # scheduler.start()
 
     # try:

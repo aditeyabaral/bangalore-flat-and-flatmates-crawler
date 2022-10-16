@@ -18,7 +18,7 @@ class Driver:
     def create_driver(self):
         logging.info("Creating driver")
         self.chrome_options = webdriver.ChromeOptions()
-        # self.chrome_options.add_argument("--headless")
+        self.chrome_options.add_argument("--headless")
         self.chrome_options.add_argument("--no-sandbox")
         self.chrome_options.add_argument("--disable-dev-shm-usage")
         self.chrome_options.add_argument("--ignore-ssl-errors=yes")
@@ -73,10 +73,9 @@ class Driver:
             post_elements = feed_element.find_elements(By.XPATH, "./div")[1:]
             return post_elements
         except Exception as e:
-            logging.error(f"Could not find feed element")
+            logging.error(f"Could not find feed element. Returning empty list")
         return list()
 
-    # TODO: Return create_time
     def parse_header_element(self, header_element):
         anchor_tags = header_element.find_elements(By.XPATH, './/a[@role="link"]')
         links = set()
@@ -85,7 +84,6 @@ class Driver:
                 ActionChains(self.chrome).move_to_element(anchor_tag).perform()
             except Exception as e:
                 logging.error(f"Could not move to element")
-            # time.sleep(0.2)
             url = anchor_tag.get_attribute("href")
             url = url.split("?")[0]
             if "posts" in url:
@@ -141,14 +139,13 @@ class Driver:
                     )
                 index += 1
             except StaleElementReferenceException as e:
-                logging.error(f"Stale element reference exception")
+                logging.error(f"Element is stale.")
                 if current_retry_count >= max_retries - 1:
                     logging.info(f"Max retries reached. Skipping post element {index}")
                     index += 1
                 else:
-                    logging.info(f"Retrying post element {index}")
+                    logging.info(f"Retrying post element at {index}")
                     current_retry_count += 1
-                    # index = 0
                     post_elements = self.get_post_elements()
                     total_post_elements = len(post_elements)
                     continue

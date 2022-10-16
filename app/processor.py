@@ -13,10 +13,10 @@ class Processor:
         self.search_config = search_config
 
     @staticmethod
-    def load_search_config():
-        logging.info("Loading search config")
+    def load_search_config(filepath="conf/search_config.json"):
+        logging.info(f"Loading search config from {filepath}")
         try:
-            with open("conf/search_config.json") as f:
+            with open(filepath) as f:
                 data = json.load(f)
             logging.debug(data)
             return data
@@ -25,14 +25,14 @@ class Processor:
             return None
 
     def clean_content(self, content):
-        logging.info("Cleaning content")
+        logging.debug(f"Cleaning content in content: {content}")
         content = re.sub(r"[^\w\s]", " ", content)
         content = re.sub(r"\s+", " ", content)
         content = content.lower()
         return content
 
     def find_exact_keywords(self, data):
-        logging.info("Finding exact keywords")
+        logging.debug("Finding exact keywords in data: {data}")
         content = data["content"].lower()
         keywords_to_search = self.search_config["keywords"]
         keywords_found = list()
@@ -42,7 +42,7 @@ class Processor:
         return keywords_found
 
     def find_similar_keywords(self, data, threshold=2):
-        logging.info(f"Finding similar keywords with threshold = {threshold}")
+        logging.debug(f"Finding similar keywords with threshold = {threshold} in data: {data}")
         content = self.clean_content(data["content"])
         keywords_to_search = self.search_config["keywords"]
         keywords_found = list()
@@ -55,7 +55,7 @@ class Processor:
         return keywords_found
 
     def check_filters(self, data, threshold=2):
-        logging.info(f"Checking filters with threshold = {threshold}")
+        logging.debug(f"Checking filters with threshold = {threshold} in data: {data}")
         content = self.clean_content(data["content"])
         filters_to_check = self.search_config["filters"]
         content_words = content.split()
@@ -66,7 +66,7 @@ class Processor:
         return False
 
     def filter_duplicate_results(self, results):
-        logging.info("Filtering duplicate results")
+        logging.debug("Filtering duplicate results")
         covered_contents = list()
         filtered_results = list()
         for result in results:

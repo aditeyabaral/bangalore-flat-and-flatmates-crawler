@@ -63,5 +63,5 @@ class FlatAndFlatmatesDatabase:
             )
             return bool(self.connection.execute(query).fetchall())
         except Exception as e:
-            logging.error(f"Error while checking content exists in db ({content}): {e}")
+            logging.error(f"Error while checking content exists in database: {content})\nError: {e}")
             return False
