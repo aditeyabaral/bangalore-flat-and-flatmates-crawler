@@ -1,0 +1,30 @@
+services:
+  crawler:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:5000"
+    container_name: crawler
+    depends_on:
+      - postgres
+    restart: on-failure
+    links:
+      - postgres
+
+  postgres:
+    image: postgres
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
