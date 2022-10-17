@@ -2,6 +2,8 @@
 
 A crawler to fetch and store housing rent data from various groups on Facebook.
 
+## How to set up the Crawler
+
 ### Prerequisites
 
 - Clone the repository
@@ -98,8 +100,6 @@ This project is a specific use-case to fetch data from Bangalore-based Facebook 
 
 - Change the `search_config.json` to include the groups you want to crawl
 - Change the `filters` and `keywords` fields in `search_config.json` to include your filters and keywords
-
-------------
 
 ## Disclaimer
 
