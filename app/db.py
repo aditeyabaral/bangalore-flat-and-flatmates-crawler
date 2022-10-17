@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
@@ -10,15 +11,25 @@ load_dotenv()
 
 class FlatAndFlatmatesDatabase:
     def __init__(self):
-        logging.info("Connecting to database")
-        self.base = declarative_base()
-        self.engine = create_engine(os.environ.get("DATABASE_URL"))
-        self.connection = self.engine.connect()
-        self.metadata = MetaData()
-        self.Session = sessionmaker(bind=self.engine)
-        self.session = self.Session()
-        self.setup_db()
 
+        while True:
+            try:
+                logging.info("Trying to connect to database")
+                self.base = declarative_base()
+                self.engine = create_engine(os.environ.get("DATABASE_URL"))
+                self.connection = self.engine.connect()
+                self.metadata = MetaData()
+                self.Session = sessionmaker(bind=self.engine)
+                self.session = self.Session()
+                self.connection.execute("SELECT 1")
+                logging.info("Connected to database successfully")
+                break
+            except Exception as e:
+                logging.error(f"Error while connecting to database: {e}")
+                logging.info("Retrying database connection in 5 seconds")
+                time.sleep(5)
+
+        self.setup_db()
         self.posts_table = Table(
             "post", self.metadata, autoload=True, autoload_with=self.engine
         )
@@ -44,6 +55,7 @@ class FlatAndFlatmatesDatabase:
                     filters=filters,
                     links=links,
                 )
+                logging.debug(query)
                 self.connection.execute(query)
         except Exception as e:
             logging.error(f"Error while adding new post entry ({content}): {e}")
@@ -51,6 +63,7 @@ class FlatAndFlatmatesDatabase:
     def get_all_post_entries(self):
         try:
             query = self.posts_table.select()
+            logging.debug(query)
             return self.connection.execute(query).fetchall()
         except Exception as e:
             logging.error(f"Error while getting all post entries: {e}")
@@ -61,7 +74,10 @@ class FlatAndFlatmatesDatabase:
             query = self.posts_table.select().where(
                 self.posts_table.c.content == content
             )
+            logging.debug(query)
             return bool(self.connection.execute(query).fetchall())
         except Exception as e:
-            logging.error(f"Error while checking content exists in database: {content})\nError: {e}")
+            logging.error(
+                f"Error while checking content exists in database: {content})\nError: {e}"
+            )
             return False

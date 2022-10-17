@@ -2,7 +2,6 @@ import os
 import pytz
 import time
 import logging
-import datetime
 from driver import Driver
 from processor import Processor
 from db import FlatAndFlatmatesDatabase
@@ -35,8 +34,10 @@ def fetch_new_posts():
             content = result["content"]
             create_time = result["create_time"]
             links = ",".join(result["links"])
-            logging.debug(f"Attempting to insert post: ({content}, {create_time}, {links}, {keyword}, {filter_check})")
-            # db.add_new_post_entry(create_time, content, keyword, filter_check, links)
+            logging.debug(
+                f"Inserting: ({content}, {create_time}, {links}, {keyword}, {filter_check})"
+            )
+            db.add_new_post_entry(create_time, content, keyword, filter_check, links)
         time.sleep(10)
 
 
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     logging.info("Starting Facebook Group Crawler")
     driver = Driver()
     processor = Processor()
-    # db = FlatAndFlatmatesDatabase()
+    db = FlatAndFlatmatesDatabase()
 
     logging.info("Loading search config")
     search_config = processor.load_search_config()
@@ -57,16 +58,16 @@ if __name__ == "__main__":
     driver.open_facebook()
     driver.login_facebook(facebook_username, facebook_password)
 
-    fetch_new_posts()
-    # scheduler = BackgroundScheduler()
-    # scheduler.add_job(fetch_new_posts, "interval", minutes=15)
-    # logging.info("Starting scheduler for fetching new posts")
-    # scheduler.start()
+    # fetch_new_posts()
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(fetch_new_posts, "interval", minutes=15)
+    logging.info("Starting scheduler for fetching new posts")
+    scheduler.start()
 
-    # try:
-    #     while True:
-    #         pass
-    # except (KeyboardInterrupt, SystemExit):
-    #   logging.info("Shutting down Facebook Group Crawler")
-    #     scheduler.shutdown()
-    #     driver.chrome.quit()
+    try:
+        while True:
+            pass
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Shutting down Facebook Group Crawler")
+        scheduler.shutdown()
+        driver.destroy_driver()

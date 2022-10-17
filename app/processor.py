@@ -35,34 +35,36 @@ class Processor:
         logging.debug("Finding exact keywords in data: {data}")
         content = data["content"].lower()
         keywords_to_search = self.search_config["keywords"]
-        keywords_found = list()
+        keywords_found = set()
         for keyword in keywords_to_search:
             if keyword in content:
-                keywords_found.append(keyword)
+                keywords_found.add(keyword)
+        keywords_found = list(keywords_found)
         return keywords_found
 
     def find_similar_keywords(self, data, threshold=2):
-        logging.debug(f"Finding similar keywords with threshold = {threshold} in data: {data}")
+        logging.debug(
+            f"Finding similar keywords with threshold = {threshold} in data: {data}"
+        )
         content = self.clean_content(data["content"])
         keywords_to_search = self.search_config["keywords"]
-        keywords_found = list()
+        keywords_found = set()
         content_words = content.split()
         for keyword in keywords_to_search:
             for content_word in content_words:
                 if editdistance.eval(keyword, content_word) <= threshold:
-                    keywords_found.append(keyword)
+                    keywords_found.add(keyword)
                     break
+        keywords_found = list(keywords_found)
         return keywords_found
 
     def check_filters(self, data, threshold=2):
         logging.debug(f"Checking filters with threshold = {threshold} in data: {data}")
         content = self.clean_content(data["content"])
         filters_to_check = self.search_config["filters"]
-        content_words = content.split()
         for filter_word in filters_to_check:
-            for content_word in content_words:
-                if editdistance.eval(filter_word, content_word) <= threshold:
-                    return True
+            if filter_word in content:
+                return True
         return False
 
     def filter_duplicate_results(self, results):
