@@ -8,4 +8,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: docker-compose --project-name facebook-group-crawler up -d
+        run: cd docker/ && docker-compose --project-name facebook-group-crawler up -d
