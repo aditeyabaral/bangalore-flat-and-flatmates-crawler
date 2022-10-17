@@ -7,5 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Create .env
+        run: echo "DATABASE_URL=\"postgresql://postgres:postgres@postgres:5432/postgres\"" > .env
       - name: Build
         run: cd docker/ && docker-compose --project-name facebook-group-crawler up -d
