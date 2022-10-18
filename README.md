@@ -68,6 +68,8 @@ select * from post where created_at > now() - interval '1 hour';
 
 ```
 
+You can set up another script that accesses the database and performs these queries periodically and connect it with a notification service that can inform you if anything relevant is found. Simple notification services can be email, telegram, discord bots, etc.
+
 ## Customizing the Crawler
 
 The crawler is customizable to suit your needs and its behavior can be modified by changing the parameters in `conf/search_config.json`. The following parameters can be modified:
