@@ -3,8 +3,6 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile
-    ports:
-      - "5000:5000"
     container_name: crawler
     depends_on:
       - postgres

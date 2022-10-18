@@ -16,14 +16,13 @@
         "1468644333461460"
     ],
     "fields": [
-        "post_id:id",
         "time:time",
         "post_text:text",
         "keywords:keywords",
         "filters:filters",
         "post_url:url",
         "listing_title:listing_title",
-        "listing_price:listing:price",
+        "listing_price:listing_price",
         "listing_location:listing_location"
     ],
     "keywords": [

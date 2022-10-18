@@ -45,20 +45,12 @@ class FlatAndFlatmatesDatabase:
                 except Exception as e:
                     logging.error(f"Error while executing query: {query}: {e}")
 
-    def add_new_post_entry(self, create_time, content, keywords, filters, links):
+    def add_new_post_entry(self, post):
         try:
-            if not self.check_content_exists_in_db(content):
-                query = self.posts_table.insert().values(
-                    create_time=create_time,
-                    content=content,
-                    keywords=keywords,
-                    filters=filters,
-                    links=links,
-                )
-                logging.debug(query)
-                self.connection.execute(query)
+            query = self.connection.execute(self.posts_table.insert(), post)
+            logging.debug(query)
         except Exception as e:
-            logging.error(f"Error while adding new post entry ({content}): {e}")
+            logging.error(f"Error while adding new post entry: {post}: {e}")
 
     def get_all_post_entries(self):
         try:

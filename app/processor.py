@@ -105,6 +105,15 @@ class Processor:
                 filtered_post_data[field] = post_data.get(field, None)
         return filtered_post_data
 
+    def rename_required_fields_for_db_entry(self, post_data):
+        required_fields = self.search_config.get("fields", [])
+        logging.debug(f"Renaming required fields for db entry: {required_fields}")
+        renamed_post_data = dict()
+        for field in required_fields:
+            post_field_name, db_field_name = field.split(":")
+            renamed_post_data[db_field_name] = post_data.get(post_field_name, None)
+        return renamed_post_data
+
     def process(self, posts):
         logging.info(f"Processing posts")
         posts = self.filter_duplicate_results(posts)
@@ -135,8 +144,9 @@ class Processor:
 
         keywords = list(
             map(
-                lambda exact_keyword_list, similar_keyword_list: exact_keyword_list
-                + similar_keyword_list,
+                lambda exact_keyword_list, similar_keyword_list: list(
+                    set(exact_keyword_list + similar_keyword_list)
+                ),
                 exact_keywords,
                 similar_keywords,
             )
@@ -144,10 +154,12 @@ class Processor:
 
         filters = list(
             map(
-                lambda post: self.find_exact_words(
-                    post.get("post_text", post.get("text", "")),
-                    self.search_config.get("filters", []),
-                    lowercase=True,
+                lambda post: bool(
+                    self.find_exact_words(
+                        post.get("post_text", post.get("text", "")),
+                        self.search_config.get("filters", []),
+                        lowercase=True,
+                    )
                 ),
                 posts,
             )
@@ -166,9 +178,11 @@ class Processor:
             )
         )
 
+        posts = list(map(self.rename_required_fields_for_db_entry, posts))
         posts = sorted(
             posts,
             key=lambda post: post.get("time", None),
             reverse=True,
         )
-        return list(posts)
+
+        return posts
