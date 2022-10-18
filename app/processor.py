@@ -12,78 +12,163 @@ class Processor:
         logging.info("Setting search config")
         self.search_config = search_config
 
+    def get_search_config(self):
+        return self.search_config
+
     @staticmethod
     def load_search_config(filepath="conf/search_config.json"):
         logging.info(f"Loading search config from {filepath}")
         try:
             with open(filepath) as f:
-                data = json.load(f)
-            logging.debug(data)
-            return data
+                search_config = json.load(f)
+            logging.debug(search_config)
+            return search_config
         except Exception as e:
             logging.error(f"Error while loading search config: {e}")
             return None
 
-    def clean_content(self, content):
-        logging.debug(f"Cleaning content in content: {content}")
-        content = re.sub(r"[^\w\s]", " ", content)
-        content = re.sub(r"\s+", " ", content)
-        content = content.lower()
-        return content
+    def clean_text_content(self, post_data_text):
+        logging.debug(f"Cleaning text content in post: {post_data_text}")
+        post_data_text = re.sub(r"[^\w\s]", " ", post_data_text)
+        post_data_text = re.sub(r"\s+", " ", post_data_text)
+        post_data_text = post_data_text.lower()
+        return post_data_text
 
-    def find_exact_keywords(self, data):
-        logging.debug("Finding exact keywords in data: {data}")
-        content = data["content"].lower()
-        keywords_to_search = self.search_config["keywords"]
-        keywords_found = set()
-        for keyword in keywords_to_search:
-            if keyword in content:
-                keywords_found.add(keyword)
-        keywords_found = list(keywords_found)
-        return keywords_found
+    def extract_number_from_listing_price(self, listing_price):
+        logging.debug(f"Extracting number from listing price: {listing_price}")
+        listing_price = re.sub(r"[^\d]", "", listing_price)
+        if not listing_price:
+            return None
+        return float(listing_price)
 
-    def find_similar_keywords(self, data, threshold=2):
+    def convert_facebook_url_to_desktop_url(self, url):
+        logging.debug(f"Converting facebook url to desktop url: {url}")
+        return url.replace("m.facebook.com", "www.facebook.com")
+
+    def find_exact_words(self, post_data_text, search_words, lowercase=True):
         logging.debug(
-            f"Finding similar keywords with threshold = {threshold} in data: {data}"
+            f"Finding exact matches for {search_words} in text: {post_data_text} with lowercase = {lowercase}"
         )
-        content = self.clean_content(data["content"])
-        keywords_to_search = self.search_config["keywords"]
-        keywords_found = set()
-        content_words = content.split()
-        for keyword in keywords_to_search:
-            for content_word in content_words:
-                if editdistance.eval(keyword, content_word) <= threshold:
-                    keywords_found.add(keyword)
+        if lowercase:
+            post_data_text = post_data_text.lower()
+        search_words_found = set()
+        for search_word in search_words:
+            if search_word in post_data_text:
+                search_words_found.add(search_word)
+        search_words_found = list(search_words_found)
+        return search_words_found
+
+    def find_similar_words(
+        self, post_data_text, search_words, lowercase=True, threshold=2
+    ):
+        logging.debug(
+            f"Finding similar matches for {search_words} with threshold = {threshold} in text: {post_data_text}"
+        )
+        if lowercase:
+            post_data_text = post_data_text.lower()
+        post_data_text_words = self.clean_text_content(post_data_text).split()
+        similar_words_found = set()
+        for search_word in search_words:
+            for content_word in post_data_text_words:
+                if editdistance.eval(search_word, content_word) <= threshold:
+                    similar_words_found.add(search_word)
                     break
-        keywords_found = list(keywords_found)
-        return keywords_found
+        similar_words_found = list(similar_words_found)
+        return similar_words_found
 
-    def check_filters(self, data, threshold=2):
-        logging.debug(f"Checking filters with threshold = {threshold} in data: {data}")
-        content = self.clean_content(data["content"])
-        filters_to_check = self.search_config["filters"]
-        for filter_word in filters_to_check:
-            if filter_word in content:
-                return True
-        return False
-
-    def filter_duplicate_results(self, results):
+    def filter_duplicate_results(self, posts):
         logging.debug("Filtering duplicate results")
-        covered_contents = list()
-        filtered_results = list()
-        for result in results:
-            if result["content"] not in covered_contents:
-                filtered_results.append(result)
-                covered_contents.append(result["content"])
-        return filtered_results
+        covered_post_text = list()
+        filtered_posts = list()
+        for post in posts:
+            post_data_text = post["post_text"].strip()
+            if post_data_text not in covered_post_text:
+                filtered_posts.append(post)
+                covered_post_text.append(post_data_text)
+        return filtered_posts
 
-    def process(self, results):
-        logging.info("Processing results")
-        results = self.filter_duplicate_results(results)
-        exact_keywords = list(map(self.find_exact_keywords, results))
-        similar_keywords = list(map(self.find_similar_keywords, results))
-        keywords = list(
-            map(lambda x, y: ",".join(x + y), exact_keywords, similar_keywords)
+    def extract_required_fields(self, post_data):
+        required_fields = self.search_config.get("fields", [])
+        required_fields = list(map(lambda field: field.split(":")[0], required_fields))
+        logging.debug(f"Extracting required fields: {required_fields}")
+        filtered_post_data = dict()
+        for field in required_fields:
+            if field == "post_url":
+                filtered_post_data[field] = self.convert_facebook_url_to_desktop_url(
+                    post_data.get(field, "")
+                )
+            elif field == "listing_price":
+                filtered_post_data[field] = self.extract_number_from_listing_price(
+                    post_data.get(field, "")
+                )
+            else:
+                filtered_post_data[field] = post_data.get(field, None)
+        return filtered_post_data
+
+    def process(self, posts):
+        logging.info(f"Processing posts")
+        posts = self.filter_duplicate_results(posts)
+        posts = list(map(self.extract_required_fields, posts))
+
+        exact_keywords = list(
+            map(
+                lambda post: self.find_exact_words(
+                    post.get("post_text", post.get("text", "")),
+                    self.search_config.get("keywords", []),
+                    lowercase=True,
+                ),
+                posts,
+            )
         )
-        filter_checks = list(map(self.check_filters, results))
-        return results, keywords, filter_checks
+
+        similar_keywords = list(
+            map(
+                lambda post: self.find_similar_words(
+                    post.get("post_text", post.get("text", "")),
+                    self.search_config.get("keywords", []),
+                    lowercase=True,
+                    threshold=2,
+                ),
+                posts,
+            )
+        )
+
+        keywords = list(
+            map(
+                lambda exact_keyword_list, similar_keyword_list: exact_keyword_list
+                + similar_keyword_list,
+                exact_keywords,
+                similar_keywords,
+            )
+        )
+
+        filters = list(
+            map(
+                lambda post: self.find_exact_words(
+                    post.get("post_text", post.get("text", "")),
+                    self.search_config.get("filters", []),
+                    lowercase=True,
+                ),
+                posts,
+            )
+        )
+
+        posts = list(
+            map(
+                lambda post, keyword_list, filter_list: {
+                    **post,
+                    "keywords": keyword_list,
+                    "filters": filter_list,
+                },
+                posts,
+                keywords,
+                filters,
+            )
+        )
+
+        posts = sorted(
+            posts,
+            key=lambda post: post.get("time", None),
+            reverse=True,
+        )
+        return list(posts)

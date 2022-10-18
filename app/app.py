@@ -1,8 +1,7 @@
-import os
-import pytz
 import time
+import json
 import logging
-from driver import Driver
+from crawler import Crawler
 from processor import Processor
 from db import FlatAndFlatmatesDatabase
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -14,60 +13,49 @@ logging.basicConfig(
     filemode="w",
 )
 
-IST = pytz.timezone("Asia/Kolkata")
+
+def fetch_latest_posts_from_group(group_id):
+    posts = crawler.crawl_posts_from_group(group_id, CONFIG.get("pages", 4))
+    logging.debug(posts)
+    logging.info(f"Found {len(posts)} posts")
+
+    posts = processor.process(posts)
+    logging.info(f"Length of posts after processing: {len(posts)}")
+    json.dump(posts, open("posts.json", "w"), indent=4, default=str)
 
 
-def fetch_new_posts():
+def fetch_latest_posts():
     logging.info(f"Fetching new posts from groups")
-    group_names = processor.search_config["groups"]
-    for group_name in group_names:
-        logging.info(f"Fetching posts from {group_name}")
-        driver.visit_group(group_name)
-
-        logging.info("Scraping posts")
-        results = driver.scrape_posts_on_page()
-        logging.info(f"Found {len(results)} posts")
-        logging.info(results)
-
-        results, keywords, filter_checks = processor.process(results)
-        for result, keyword, filter_check in zip(results, keywords, filter_checks):
-            content = result["content"]
-            create_time = result["create_time"]
-            links = ",".join(result["links"])
-            logging.debug(
-                f"Inserting: ({content}, {create_time}, {links}, {keyword}, {filter_check})"
-            )
-            db.add_new_post_entry(create_time, content, keyword, filter_check, links)
+    group_ids = processor.search_config["groups"]
+    for group_id in group_ids:
+        logging.info(f"Fetching latest posts from {group_id}")
+        fetch_latest_posts_from_group(group_id)
         time.sleep(10)
+        break
 
 
 if __name__ == "__main__":
     logging.info("Starting Facebook Group Crawler")
-    driver = Driver()
+    crawler = Crawler()
     processor = Processor()
-    db = FlatAndFlatmatesDatabase()
+    CONFIG = processor.load_search_config("conf/search_config.json")
+    processor.set_search_config(CONFIG)
+    # db = FlatAndFlatmatesDatabase()
 
     logging.info("Loading search config")
     search_config = processor.load_search_config()
     logging.debug(search_config)
     processor.set_search_config(search_config)
 
-    facebook_username = os.environ["FACEBOOK_USERNAME"]
-    facebook_password = os.environ["FACEBOOK_PASSWORD"]
-    driver.create_driver()
-    driver.open_facebook()
-    driver.login_facebook(facebook_username, facebook_password)
+    fetch_latest_posts()
+    # scheduler = BackgroundScheduler()
+    # scheduler.add_job(fetch_latest_posts, "interval", minutes=15)
+    # logging.info("Starting scheduler for fetching new posts")
+    # scheduler.start()
 
-    # fetch_new_posts()
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(fetch_new_posts, "interval", minutes=15)
-    logging.info("Starting scheduler for fetching new posts")
-    scheduler.start()
-
-    try:
-        while True:
-            time.sleep(1e4)
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Shutting down Facebook Group Crawler")
-        scheduler.shutdown()
-        driver.destroy_driver()
+    # try:
+    #     while True:
+    #         time.sleep(1e4)
+    # except (KeyboardInterrupt, SystemExit):
+    #     logging.info("Shutting down Facebook Group Crawler")
+    #     scheduler.shutdown()
