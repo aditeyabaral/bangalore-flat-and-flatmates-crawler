@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     try:
         while True:
-            pass
+            time.sleep(1e4)
     except (KeyboardInterrupt, SystemExit):
         logging.info("Shutting down Facebook Group Crawler")
         scheduler.shutdown()

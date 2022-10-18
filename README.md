@@ -1,6 +1,6 @@
 # bangalore-flat-and-flatmates-crawler
 
-A crawler to fetch and store housing rent data from various groups on Facebook.
+A crawler to fetch and store housing rent data from various groups on Facebook
 
 ## How to set up the Crawler
 
@@ -53,6 +53,21 @@ If you want to use a Python virtual environment, you can do so by following the 
     python app/app.py
     ```
 
+### Finding relevant results from Database
+
+You can obtain the scraped results by accessing the database and running any of the following queries:
+```sql
+-- To get posts that match the keywords and filters
+select * from post where keywords != '' and filters=true; 
+
+-- To get posts that match a keyword
+select * from post where keyword like '%old airport road%';
+
+-- To get posts made in the last 1 hour
+select * from post where created_at > now() - interval '1 hour';
+
+```
+
 ## Customizing the Crawler
 
 The crawler is customizable to suit your needs and its behavior can be modified by changing the parameters in `conf/search_config.json`. The following parameters can be modified:
@@ -68,17 +83,17 @@ The crawler is customizable to suit your needs and its behavior can be modified 
 - `groups`
     - Each Facebook group is crawled one after the other
     - The order of the groups in the list is the order in which the groups are fetched.
-- `Keywords`
+- `keywords`
     - Words or phrases
     - Case-insensitive
     - Minor variations of the words are handled (for example, `"indiranagar"` and `"indranagar"` are treated as the same word)
     - If any of the keywords are matched, it is added to the list of keywords for that post in the database.
-- `Filters`
+- `filters`
     - Words or phrases
     - Case-insensitive
     - Minor variations of the words are **NOT** handled (for example, `"indiranagar"` and `"indranagar"` are treated as different words here)
     - If any filter is matched, the corresponding post is tagged in the database.
-    - Remember to be careful with filters, since they are matched as is (for example, using the filter `"male only"` will also match `"female only"` flats)
+    - Remember to be careful with filters, since they are matched as is (for example, using the filter `"male only"` will also match `"female only"` flats. You can tackle this by adding a whitespace before - `" male only"`)
 
 ## Why crawl Facebook groups?
 
@@ -86,7 +101,7 @@ Searching for flats and/or flatmates is a very daunting and tiresome task, espec
 
 This project aims to crawl these groups and store the data in a database for easy access. It also comes with filters and keyword matching to help label the data that is fetched. This thus speeds up the process of finding a flat and/or flatmate.
 
-TLDR: 
+### TLDR
 
 This application is useful to you if:
 - You are looking for a flat/flatmate in Bangalore
