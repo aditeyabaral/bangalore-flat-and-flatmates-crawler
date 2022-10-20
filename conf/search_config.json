@@ -47,5 +47,12 @@
         "interested girls",
         "only girls"
     ],
-    "pages": 4
+    "crawler_options": {
+        "comments": false,
+        "reactors": false,
+        "allow_extra_requests": false
+    },
+    "pages": 4,
+    "interval": 20,
+    "spelling": 2
 }
