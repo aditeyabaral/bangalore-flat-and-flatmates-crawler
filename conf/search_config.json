@@ -15,6 +15,16 @@
         "117112802199699",
         "1468644333461460"
     ],
+    "fields": [
+        "time:time",
+        "post_text:text",
+        "keywords:keywords",
+        "filters:filters",
+        "post_url:url",
+        "listing_title:listing_title",
+        "listing_price:listing_price",
+        "listing_location:listing_location"
+    ],
     "keywords": [
         "yemlur",
         "old airport road",
@@ -36,5 +46,13 @@
         "girls only",
         "interested girls",
         "only girls"
-    ]
+    ],
+    "crawler_options": {
+        "comments": false,
+        "reactors": false,
+        "allow_extra_requests": false
+    },
+    "pages": 4,
+    "interval": 20,
+    "spelling": 2
 }

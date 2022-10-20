@@ -2,6 +2,7 @@ import os
 import time
 import logging
 from dotenv import load_dotenv
+from typing import Tuple, List, Dict
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, MetaData, Table
@@ -45,22 +46,14 @@ class FlatAndFlatmatesDatabase:
                 except Exception as e:
                     logging.error(f"Error while executing query: {query}: {e}")
 
-    def add_new_post_entry(self, create_time, content, keywords, filters, links):
+    def add_new_post_entry(self, post: Dict):
         try:
-            if not self.check_content_exists_in_db(content):
-                query = self.posts_table.insert().values(
-                    create_time=create_time,
-                    content=content,
-                    keywords=keywords,
-                    filters=filters,
-                    links=links,
-                )
-                logging.debug(query)
-                self.connection.execute(query)
+            query = self.connection.execute(self.posts_table.insert(), post)
+            logging.debug(query)
         except Exception as e:
-            logging.error(f"Error while adding new post entry ({content}): {e}")
+            logging.error(f"Error while adding new post entry: {post}: {e}")
 
-    def get_all_post_entries(self):
+    def get_all_post_entries(self) -> List[Tuple]:
         try:
             query = self.posts_table.select()
             logging.debug(query)
@@ -69,7 +62,7 @@ class FlatAndFlatmatesDatabase:
             logging.error(f"Error while getting all post entries: {e}")
             return list()
 
-    def check_content_exists_in_db(self, content):
+    def check_content_exists_in_db(self, content: str) -> bool:
         try:
             query = self.posts_table.select().where(
                 self.posts_table.c.content == content
