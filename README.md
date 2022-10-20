@@ -12,12 +12,8 @@ A crawler to fetch and store housing rent data from various groups on Facebook
 
     ```bash
     DATABASE_URL="<your_database_url>"
-    FACEBOOK_USERNAME="<your_facebook_email_or_password>"
-    FACEBOOK_PASSWORD="<your_facebook_password>"
     ```
     - The database URL should be a valid local or a remote database URL. If you intend to use the Docker deployment and use the database container, the database URL should be: `postgresql://postgres:postgres@postgres:5432/postgres`
-- Install Google Chrome and Chromedriver (if using Python virtual environment)
-    - Download Chromedriver for your version (you can view this in Chrome settings) of Google Chrome from [here](https://chromedriver.chromium.org/downloads) and place it in the root directory of the project
 - Install Docker and Docker Compose (if using Docker deployment)
 - [Customize the Crawler](#customizing-the-crawler) to suit your needs
 
@@ -64,7 +60,10 @@ select * from post where keywords != '' and filters=true;
 select * from post where keyword like '%old airport road%';
 
 -- To get posts made in the last 1 hour
-select * from post where created_at > now() - interval '1 hour';
+select * from post where time > now() - interval '1 hour';
+
+-- To get posts where listed price is less than 20k
+select * from post where listing_price < 20000;
 
 ```
 
@@ -74,17 +73,29 @@ You can set up another script that accesses the database and performs these quer
 
 The crawler is customizable to suit your needs and its behavior can be modified by changing the parameters in `conf/search_config.json`. The following parameters can be modified:
 
-| Field    	| DataType  	| Description                                                                                                                                  	|
-|----------	|-----------	|----------------------------------------------------------------------------------------------------------------------------------------------	|
-| `groups`   	| `list[str]`	| A list of Facebook group IDs to search                                                                                                       	|
-| `keywords` 	| `list[str]` 	| A list of key words/phrases that are searched for inside each post. Matched keywords are extracted and stored for each post.                   	|
-| `filters`  	| `list[str]` 	| A list of filter words/phrases that must be exactly present in each post. If any filter is matched, the corresponding post is tagged in the database 	|
+| Field           	| DataType        	| Description                                                                                                                                  	|
+|-----------------	|-----------------	|----------------------------------------------------------------------------------------------------------------------------------------------	|
+| `groups`          	| `list[str]`       	| A list of Facebook group IDs to search                                                                                                       	|
+| `fields`          	| `list[str]`       	| A key:value map storing a post's field name and corresponding column name in the database                                                    	|
+| `keywords`        	| `list[str]`      	| A list of key words/phrases that are searched for inside each post. Matched keywords are extracted and stored for each post                  	|
+| `filters`         	| `list[str]`      	| A list of filter words/phrases that must be present in each post. If any filter is matched, the corresponding post is tagged in the database 	|
+| `crawler_options` 	| `dict[str, bool]` 	| A key:value map storing options for the crawler                                                                                              	|
+| `pages`           	| `int`             	| The number of pages to crawl per search                                                                                                      	|
+| `interval`        	| `int`             	| The time interval in minutes to perform each search                                                                                          	|
+| `spelling`        	| `int`             	| The degree of variation allowed in spellings while looking for keywords                                                                      	|
 
 ### More Information
 
 - `groups`
     - Each Facebook group is crawled one after the other
     - The order of the groups in the list is the order in which the groups are fetched.
+-  `fields`
+    - You can customize which fields of a post are extracted and stored in the database
+    - Each entry is of the form `post_property: database_column`. You can find all the properties in `conf/post_fields.json`
+    - To add/remove a field, perform the following steps:
+        - Make suitable changes to `conf/ddl.sql` to create the right schema for the database
+        - Add/remove the fields from the `fields` list 
+        - Ensure the database column names in the `fields` list matches the columns in the database in `ddl.sql`
 - `keywords`
     - Words or phrases
     - Case-insensitive
@@ -96,6 +107,19 @@ The crawler is customizable to suit your needs and its behavior can be modified 
     - Minor variations of the words are **NOT** handled (for example, `"indiranagar"` and `"indranagar"` are treated as different words here)
     - If any filter is matched, the corresponding post is tagged in the database.
     - Remember to be careful with filters, since they are matched as is (for example, using the filter `"male only"` will also match `"female only"` flats. You can tackle this by adding a whitespace before - `" male only"`)
+- `crawler_options`
+    - You can choose to fetch comments, reactions as well as make extra requests
+    - By default, these are set to `False`. Setting any of them to `True` would result in making additional HTTP calls to fetch the corresponding fields and hence slow down the crawler
+- `pages`
+    - A smaller number of pages means a faster crawl of each group
+    - Usually fetches about 10-20 posts per page and covers more than an hour's worth of posts
+- `interval`
+    - The interval in minutes the crawler is going to run
+    - Do not set a low value here since it might lead to an IP ban for making too many successive requests
+- `spelling`
+    - The threshold applied to edit distance while finding variations in spelling of keywords
+    - A higher value means that more variations will be considered when looking for keywords, and a lower value means fewer variations are considered
+    - Increasing the value too much will result in false positives (for example, `"indiranagar"` might match with `"ramnagar"`)
 
 ## Why crawl Facebook groups?
 
@@ -120,6 +144,6 @@ This project is a specific use-case to fetch data from Bangalore-based Facebook 
 
 ## Disclaimer
 
-Facebook can detect unusual activity from your account if this application is overused. It might log you out from all your devices and restrict certain features of your account (for example: like, comments, etc.) for some time. 
+Facebook can detect unusual activity from your IP address if this application is overused. It might ban your IP address and restrict certain features of your account (for example, likes, comments, etc.) for some time. 
 
 To ensure that this does not happen, please use this application responsibly. I recommend that you fetch posts once every 20 minutes only. I do not claim any responsibility for any harm done due to this application.
