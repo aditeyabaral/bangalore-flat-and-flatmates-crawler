@@ -159,6 +159,12 @@ class Processor:
                 similar_keywords,
             )
         )
+        keywords = list(
+            map(
+                lambda keyword_list: ",".join(keyword_list) if keyword_list else None,
+                keywords,
+            )
+        )
 
         filters = list(
             map(
