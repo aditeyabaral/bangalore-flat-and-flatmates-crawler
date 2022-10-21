@@ -4,12 +4,13 @@ from typing import Union
 from crawler import Crawler
 from processor import Processor
 from db import FlatAndFlatmatesDatabase
+from concurrent.futures import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 
 logging.basicConfig(
     level=logging.INFO,
     filename="app.log",
-    format="%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s:%(lineno)d - %(message)s",
+    format="%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s:%(threadName)s:%(lineno)d - %(message)s",
     filemode="w",
 )
 
@@ -27,10 +28,21 @@ def fetch_latest_posts_from_group(group_id: Union[str, int], pages: int = 1):
 
 def fetch_latest_posts():
     logging.info(f"Fetching new posts from groups")
-    group_ids = processor.CONFIG.get("groups", [])
-    for group_id in group_ids:
-        fetch_latest_posts_from_group(group_id, SEARCH_CONFIG.get("pages", 4))
-        time.sleep(10)
+    group_ids = SEARCH_CONFIG.get("groups", [])
+    num_pages = SEARCH_CONFIG.get("pages", 4)
+    if not SEARCH_CONFIG.get("multithreaded", False):
+        for group_id in group_ids:
+            fetch_latest_posts_from_group(group_id, num_pages)
+            time.sleep(10)
+    else:
+        num_group_ids = len(group_ids)
+        num_pages_iterable = [num_pages] * num_group_ids
+        with ThreadPoolExecutor(max_workers=num_group_ids) as executor:
+            executor.map(
+                fetch_latest_posts_from_group,
+                group_ids,
+                num_pages_iterable,
+            )
 
 
 if __name__ == "__main__":
