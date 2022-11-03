@@ -30,13 +30,17 @@ class Crawler:
         user_agent = random.choice(self.user_agents)
         logging.info(f"Using user agent: {user_agent}")
         facebook_scraper.set_user_agent(user_agent)
-        posts = list(
-            facebook_scraper.get_posts(
-                group=f"{group_id}?sorting_setting=CHRONOLOGICAL_LISTINGS",
-                pages=pages,
-                options=self.options,
+        try:
+            posts = list(
+                facebook_scraper.get_posts(
+                    group=f"{group_id}?sorting_setting=CHRONOLOGICAL_LISTINGS",
+                    pages=pages,
+                    options=self.options,
+                )
             )
-        )
+        except Exception as e:
+            logging.error(f"Error fetching posts from group {group_id}: {e}")
+            posts = []
         return posts
 
     def crawl_posts_from_post_urls(self, post_urls: List[str]) -> List[Dict]:
