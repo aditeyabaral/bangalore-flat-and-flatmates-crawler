@@ -30,11 +30,7 @@ def fetch_latest_posts():
     logging.info(f"Fetching new posts from groups")
     group_ids = SEARCH_CONFIG.get("groups", [])
     num_pages = SEARCH_CONFIG.get("pages", 4)
-    if not SEARCH_CONFIG.get("multithreaded", False):
-        for group_id in group_ids:
-            fetch_latest_posts_from_group(group_id, num_pages)
-            time.sleep(10)
-    else:
+    if SEARCH_CONFIG.get("multithreading", False):
         num_group_ids = len(group_ids)
         num_pages_iterable = [num_pages] * num_group_ids
         with ThreadPoolExecutor(max_workers=num_group_ids) as executor:
@@ -43,6 +39,10 @@ def fetch_latest_posts():
                 group_ids,
                 num_pages_iterable,
             )
+    else:
+        for group_id in group_ids:
+            fetch_latest_posts_from_group(group_id, num_pages)
+            time.sleep(10)
 
 
 if __name__ == "__main__":
@@ -60,6 +60,7 @@ if __name__ == "__main__":
         fetch_latest_posts, "interval", minutes=SEARCH_CONFIG.get("interval", 20)
     )
 
+    fetch_latest_posts()
     logging.info("Starting scheduler for fetching new posts")
     scheduler.start()
 

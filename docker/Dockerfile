@@ -1,4 +1,4 @@
-FROM python
+FROM python:3.9.15
 
 RUN apt update -y
 RUN apt upgrade -y
