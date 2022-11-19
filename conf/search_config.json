@@ -55,5 +55,5 @@
     "pages": 4,
     "interval": 20,
     "spelling": 2,
-    "multithreaded": true
+    "multithreaded": false
 }

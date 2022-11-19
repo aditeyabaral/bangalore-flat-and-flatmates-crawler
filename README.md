@@ -7,24 +7,33 @@ A crawler to fetch and store housing rent data from various groups on Facebook
 ### Prerequisites
 
 - Clone the repository
-- Create a local/remote database and obtain the credentials/URL
 - Create the following `.env` file in the root directory of the project
 
     ```bash
     DATABASE_URL="<your_database_url>"
     ```
-    - The database URL should be a valid local or a remote database URL. If you intend to use the Docker deployment and use the database container, the database URL should be: `postgresql://postgres:postgres@postgres:5432/postgres`
-- Install Docker and Docker Compose (if using Docker deployment)
+    - The database URL should be a valid local or a remote database URL. 
+    - If you intend to use the Docker-Compose deployment option, the database URL should be: `postgresql://postgres:postgres@postgres:5432/postgres`
+- Install Docker and Docker Compose (if using any of the Docker deployment options)
 - [Customize the Crawler](#customizing-the-crawler) to suit your needs
 
 ### Using Docker-Compose
 
-The easiest way to set up the app is to use Docker-Compose. All you need to do is set up the `.env` (remember to set the database URL accordingly as mentioned in the prerequisites) - the `Dockerfile` and `docker-compose.yml` files will handle the rest. Run the following command to deploy the app:
+The easiest way to set up the app is to use Docker-Compose. All you need to do is set up the `.env` - the `Dockerfile` and `docker-compose.yml` files will handle the rest. Run the following command to deploy the app:
 
 ```bash
 cd docker/
 docker-compose --project-name facebook-group-crawler up -d
  ```
+
+### Using Docker with an Existing Database
+
+If you already have access to an existing database connection, you can use the `Dockerfile` to build the Docker image and run the app. Run the following commands to build the Docker image and run the app:
+
+```bash
+docker build -f docker/Dockerfile -t facebook-group-crawler .
+docker run -itd facebook-group-crawler
+```
 
 ### Using a Python Virtual Environment
 
@@ -75,14 +84,15 @@ The crawler is customizable to suit your needs and its behavior can be modified 
 
 | Field           	| DataType        	| Description                                                                                                                                  	|
 |-----------------	|-----------------	|----------------------------------------------------------------------------------------------------------------------------------------------	|
-| `groups`          	| `list[str]`       	| A list of Facebook group IDs to search                                                                                                       	|
-| `fields`          	| `list[str]`       	| A key:value map storing a post's field name and corresponding column name in the database                                                    	|
-| `keywords`        	| `list[str]`      	| A list of key words/phrases that are searched for inside each post. Matched keywords are extracted and stored for each post                  	|
-| `filters`         	| `list[str]`      	| A list of filter words/phrases that must be present in each post. If any filter is matched, the corresponding post is tagged in the database 	|
-| `crawler_options` 	| `dict[str, bool]` 	| A key:value map storing options for the crawler                                                                                              	|
+| `groups`          	| `List[str]`       	| A list of Facebook group IDs to search                                                                                                       	|
+| `fields`          	| `List[str]`       	| A key:value map storing a post's field name and corresponding column name in the database                                                    	|
+| `keywords`        	| `List[str]`      	| A list of key words/phrases that are searched for inside each post. Matched keywords are extracted and stored for each post                  	|
+| `filters`         	| `List[str]`      	| A list of filter words/phrases that must be present in each post. If any filter is matched, the corresponding post is tagged in the database 	|
+| `crawler_options` 	| `Dict[str, bool]` 	| A key:value map storing options for the crawler                                                                                              	|
 | `pages`           	| `int`             	| The number of pages to crawl per search                                                                                                      	|
 | `interval`        	| `int`             	| The time interval in minutes to perform each search                                                                                          	|
 | `spelling`        	| `int`             	| The degree of variation allowed in spellings while looking for keywords                                                                      	|
+| `multithreaded`        	| `bool`             	| Whether to use multithreading to fetch posts from multiple groups simultaneously                                                                      	|
 
 ### More Information
 
@@ -117,9 +127,13 @@ The crawler is customizable to suit your needs and its behavior can be modified 
     - The interval in minutes the crawler is going to run
     - Do not set a low value here since it might lead to an IP ban for making too many successive requests
 - `spelling`
-    - The threshold applied to edit distance while finding variations in spelling of keywords
+    - The threshold applied to edit distance while finding variations in the spelling of keywords
     - A higher value means that more variations will be considered when looking for keywords, and a lower value means fewer variations are considered
     - Increasing the value too much will result in false positives (for example, `"indiranagar"` might match with `"ramnagar"`)
+- `multithreaded`
+    - You can leverage multithreading to fetch posts from multiple groups simultaneously
+    - This is set to `False` by default since it might lead to an IP ban for making too many successive requests
+    - If you crawling a small number of groups or fetching a small number of pages, you can set this to `True` to speed up the crawler
 
 ## Why crawl Facebook groups?
 
