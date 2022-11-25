@@ -32,7 +32,7 @@ If you already have access to an existing database connection, you can use the `
 
 ```bash
 docker build -f docker/Dockerfile -t facebook-group-crawler .
-docker run -itd facebook-group-crawler
+docker run --name crawler -itd facebook-group-crawler
 ```
 
 ### Using a Python Virtual Environment
