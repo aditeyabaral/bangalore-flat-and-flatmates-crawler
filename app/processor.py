@@ -1,25 +1,25 @@
-import re
+import editdistance
 import json
 import logging
-import editdistance
-from typing import Union, List, Dict
+import re
+from typing import Union, List, Dict, Any
 
 
 class Processor:
     def __init__(self):
         self.CONFIG = None
 
-    def set_config(self, search_config: Dict):
+    def set_config(self, search_config: Dict[str, Any]):
         logging.info("Setting search config")
         self.CONFIG = search_config
 
     def load_config(
         self, filepath: str = "conf/search_config.json"
-    ) -> Union[Dict, None]:
+    ) -> Union[Dict[str, Any], None]:
         logging.info(f"Loading search config from {filepath}")
         try:
             with open(filepath) as f:
-                search_config = json.load(f)
+                search_config: Dict[str, Any] = json.load(f)
             logging.debug(search_config)
             self.CONFIG = search_config
             return self.CONFIG
@@ -34,7 +34,7 @@ class Processor:
         post_data_text = post_data_text.lower()
         return post_data_text
 
-    def extract_number_from_listing_price(
+    def extract_number_from_listing_price_string(
         self, listing_price: str
     ) -> Union[float, None]:
         logging.debug(f"Extracting number from listing price: {listing_price}")
@@ -43,8 +43,10 @@ class Processor:
             return None
         return float(listing_price)
 
-    def convert_facebook_url_to_desktop_url(self, url: str) -> str:
+    def convert_facebook_url_to_desktop_url(self, url: Union[str, None]) -> str:
         logging.debug(f"Converting facebook url to desktop url: {url}")
+        if url is None:
+            return ""
         return url.replace("m.facebook.com", "www.facebook.com")
 
     def find_exact_words(
@@ -106,7 +108,9 @@ class Processor:
                     post_data.get(field, "")
                 )
             elif field == "listing_price":
-                filtered_post_data[field] = self.extract_number_from_listing_price(
+                filtered_post_data[
+                    field
+                ] = self.extract_number_from_listing_price_string(
                     post_data.get(field, "")
                 )
             else:
